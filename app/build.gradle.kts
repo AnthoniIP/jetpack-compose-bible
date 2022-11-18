@@ -82,6 +82,7 @@ dependencies {
     implementation(Deps.coreKtx)
     implementation(Deps.lifecycleRuntime)
     implementation(Deps.activityCompose)
+    implementation(Deps.window)
     testImplementation(Test.jUnit)
     androidTestImplementation(Test.testExt)
 

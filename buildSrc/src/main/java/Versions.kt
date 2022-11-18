@@ -27,4 +27,5 @@ object Versions {
     const val sqliteJdbc = "3.36.0"
     const val testExt = "1.1.3"
     const val dataStore = "1.0.0"
+    const val window = "1.0.0"
 }

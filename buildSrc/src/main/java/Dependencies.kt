@@ -83,6 +83,7 @@ object Deps {
     val composeUiTooling by lazy { "androidx.compose.ui:ui-tooling:${Versions.compose}" }
     val composeUiTest by lazy { "androidx.compose.ui:ui-test-manifest:${Versions.compose}"}
     val dataStore by lazy {"androidx.datastore:datastore-preferences:${Versions.dataStore}" }
+    val window by lazy { "androidx.window:window:${Versions.window}" }
 }
 
 object Test {

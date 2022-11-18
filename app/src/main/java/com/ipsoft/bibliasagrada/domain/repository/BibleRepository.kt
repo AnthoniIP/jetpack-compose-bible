@@ -24,7 +24,7 @@ interface BibleRepository : Repository {
     @Inject constructor(
         private val networkHandler: NetworkHandler,
         private val service: ChurchRoomService,
-        private val churchDatabase: ChurchDatabase
+        private val churchDatabase: ChurchDatabase,
     ) : BibleRepository {
 
         private val verseUrl = BIBLE_BASE_URL + "verses/nvi/%s/%d"

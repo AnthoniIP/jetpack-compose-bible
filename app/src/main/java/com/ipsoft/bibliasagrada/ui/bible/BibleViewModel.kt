@@ -124,7 +124,8 @@ class BibleViewModel @Inject constructor(
                 it.name.removeAccents().contains(search, true) || it.abbrev.pt.contains(
                     search, true
                 )
-            }
+            }?.let { ArrayList(it) }
+
         )
     }
 

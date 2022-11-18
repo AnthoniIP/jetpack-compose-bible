@@ -21,6 +21,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.window.layout.WindowMetricsCalculator
 import com.ipsoft.bibliasagrada.R
 import com.ipsoft.bibliasagrada.domain.common.constants.ARG_BOOK_ABBREV
 import com.ipsoft.bibliasagrada.domain.common.constants.ARG_BOOK_NAME
@@ -32,12 +33,15 @@ import com.ipsoft.bibliasagrada.ui.bible.books.ListBooks
 import com.ipsoft.bibliasagrada.ui.bible.chapters.ListChapters
 import com.ipsoft.bibliasagrada.ui.bible.reading.BibleReading
 import com.ipsoft.bibliasagrada.ui.theme.BibliaSagradaTheme
+import com.ipsoft.bibliasagrada.util.WindowSizeClass
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private lateinit var permissionLauncher: ActivityResultLauncher<Array<String>>
+    private lateinit var widthWindowSizeClass: WindowSizeClass
+    private lateinit var heightWindowSizeClass: WindowSizeClass
 
     private val viewModel: BibleViewModel by viewModels()
 
@@ -61,6 +65,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        computeWindowSizeClasses()
     }
 
     override fun onBackPressed() {
@@ -75,105 +80,129 @@ class MainActivity : ComponentActivity() {
             )
         )
     }
-}
 
-@Composable
-fun BibleApplication(viewModel: BibleViewModel) {
+    private fun computeWindowSizeClasses() {
+        val metrics = WindowMetricsCalculator.getOrCreate().computeCurrentWindowMetrics(this)
 
-    val failure: State<Failure?> = viewModel.failure.observeAsState(initial = null)
-    val loading: State<Boolean> = viewModel.loading.observeAsState(initial = true)
+        val widthDp = metrics.bounds.width() /
+            resources.displayMetrics.density
+        widthWindowSizeClass = when {
+            widthDp < 600f -> WindowSizeClass.COMPACT
+            widthDp < 840f -> WindowSizeClass.MEDIUM
+            else -> WindowSizeClass.EXPANDED
+        }
 
-    failure.value?.let {
-        when (it) {
-            is Failure.NetworkConnection -> {
-                Toast.makeText(
-                    LocalContext.current,
-                    stringResource(R.string.no_network),
-                    Toast.LENGTH_LONG
+        val heightDp = metrics.bounds.height() /
+            resources.displayMetrics.density
+        heightWindowSizeClass = when {
+            heightDp < 480f -> WindowSizeClass.COMPACT
+            heightDp < 900f -> WindowSizeClass.MEDIUM
+            else -> WindowSizeClass.EXPANDED
+        }
+    }
+
+    @Composable
+    fun BibleApplication(viewModel: BibleViewModel) {
+
+        val failure: State<Failure?> = viewModel.failure.observeAsState(initial = null)
+        val loading: State<Boolean> = viewModel.loading.observeAsState(initial = true)
+
+        failure.value?.let {
+            when (it) {
+                is Failure.NetworkConnection -> {
+                    Toast.makeText(
+                        LocalContext.current,
+                        stringResource(R.string.no_network),
+                        Toast.LENGTH_LONG
+                    )
+                        .show()
+                }
+                is Failure.ServerError -> {
+                    Toast.makeText(
+                        LocalContext.current,
+                        stringResource(R.string.server_error),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                else -> {
+                    Toast.makeText(
+                        LocalContext.current,
+                        stringResource(R.string.unknown_error),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+
+        val navController = rememberNavController()
+        NavHost(navController = navController, startDestination = ListBooksScreen.route) {
+            composable(route = ListBooksScreen.route) {
+                ListBooks(viewModel, navController, loading)
+            }
+            composable(
+                route = ListChaptersScreen.route,
+                arguments =
+                listOf(
+                    navArgument(ARG_BOOK_NAME) {
+                        type = NavType.StringType
+                    },
+                    navArgument(ARG_BOOK_ABBREV) {
+                        type = NavType.StringType
+                    },
+                    navArgument(ARG_CHAPTER_QUANTITY) {
+                        type = NavType.IntType
+                    }
                 )
-                    .show()
+            ) { navBackStackEntry ->
+                ListChapters(
+                    navBackStackEntry.arguments?.getString(
+                        ARG_BOOK_NAME
+                    )!!,
+                    navBackStackEntry.arguments?.getString(
+                        ARG_BOOK_ABBREV
+                    )!!,
+                    navBackStackEntry.arguments?.getInt(
+                        ARG_CHAPTER_QUANTITY
+                    )!!,
+                    navController,
+                    viewModel,
+                )
             }
-            is Failure.ServerError -> {
-                Toast.makeText(
-                    LocalContext.current,
-                    stringResource(R.string.server_error),
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-            else -> {
-                Toast.makeText(
-                    LocalContext.current,
-                    stringResource(R.string.unknown_error),
-                    Toast.LENGTH_LONG
-                ).show()
+            composable(
+                route = BibleReadingScreen.route,
+                arguments = listOf(
+                    navArgument(ARG_BOOK_NAME) {
+                        type = NavType.StringType
+                    },
+                    navArgument(ARG_BOOK_ABBREV) {
+                        type = NavType.StringType
+                    },
+                    navArgument(ARG_CHAPTER_ID) {
+                        type = NavType.IntType
+                    },
+                    navArgument(ARG_CHAPTER_QUANTITY) {
+                        type = NavType.IntType
+                    }
+                )
+            ) { navBackStackEntry ->
+                BibleReading(
+                    navBackStackEntry.arguments?.getString(
+                        ARG_BOOK_NAME
+                    )!!,
+                    navBackStackEntry.arguments?.getString(
+                        ARG_BOOK_ABBREV
+                    )!!,
+                    navBackStackEntry.arguments!!.getInt(ARG_CHAPTER_ID),
+                    navBackStackEntry.arguments!!.getInt(ARG_CHAPTER_QUANTITY),
+                    navController,
+                    viewModel,
+                    loading,
+                    isLargeScreen()
+                )
             }
         }
     }
 
-    val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = ListBooksScreen.route) {
-        composable(route = ListBooksScreen.route) {
-            ListBooks(viewModel, navController, loading)
-        }
-        composable(
-            route = ListChaptersScreen.route,
-            arguments =
-            listOf(
-                navArgument(ARG_BOOK_NAME) {
-                    type = NavType.StringType
-                },
-                navArgument(ARG_BOOK_ABBREV) {
-                    type = NavType.StringType
-                },
-                navArgument(ARG_CHAPTER_QUANTITY) {
-                    type = NavType.IntType
-                }
-            )
-        ) { navBackStackEntry ->
-            ListChapters(
-                navBackStackEntry.arguments?.getString(
-                    ARG_BOOK_NAME
-                )!!,
-                navBackStackEntry.arguments?.getString(
-                    ARG_BOOK_ABBREV
-                )!!,
-                navBackStackEntry.arguments?.getInt(
-                    ARG_CHAPTER_QUANTITY
-                )!!,
-                navController,
-                viewModel,
-            )
-        }
-        composable(
-            route = BibleReadingScreen.route,
-            arguments = listOf(
-                navArgument(ARG_BOOK_NAME) {
-                    type = NavType.StringType
-                },
-                navArgument(ARG_BOOK_ABBREV) {
-                    type = NavType.StringType
-                },
-                navArgument(ARG_CHAPTER_ID) {
-                    type = NavType.IntType
-                },
-                navArgument(ARG_CHAPTER_QUANTITY) {
-                    type = NavType.IntType
-                }
-            )
-        ) { navBackStackEntry ->
-            BibleReading(
-                navBackStackEntry.arguments?.getString(
-                    ARG_BOOK_NAME
-                )!!,
-                navBackStackEntry.arguments?.getString(
-                    ARG_BOOK_ABBREV
-                )!!,
-                navBackStackEntry.arguments!!.getInt(ARG_CHAPTER_ID),
-                navBackStackEntry.arguments!!.getInt(ARG_CHAPTER_QUANTITY),
-                navController,
-                viewModel,
-                loading
-            )
-        }
-    }
+    private fun isLargeScreen(): Boolean =
+        widthWindowSizeClass == WindowSizeClass.EXPANDED && heightWindowSizeClass == WindowSizeClass.EXPANDED
 }

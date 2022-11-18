@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.ipsoft.bibliasagrada.R
 import com.ipsoft.bibliasagrada.domain.common.constants.PLAY_STORE_URL
+import com.ipsoft.bibliasagrada.domain.core.extension.split
 import com.ipsoft.bibliasagrada.domain.model.ChapterResponse
 import com.ipsoft.bibliasagrada.domain.model.Verse
 import com.ipsoft.bibliasagrada.ui.bible.BibleViewModel
@@ -66,6 +67,7 @@ fun BibleReading(
     navController: NavHostController,
     viewModel: BibleViewModel,
     loading: State<Boolean>,
+    showTwoColumns: Boolean,
 ) {
 
     val showTutorial: State<Boolean> = viewModel.showTutorial.observeAsState(initial = true)
@@ -95,11 +97,31 @@ fun BibleReading(
         },
     ) {
         Surface(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
         ) {
+            if (showTwoColumns) {
+                LazyColumn() {
+                    items(chapterState.value?.verses?.split() ?: emptyList()) { verses ->
+                        MultiColumnVerseItem(verses, fontSizeState, viewModel)
+                    }
+                    item { Spacer(modifier = Modifier.height(48.dp)) }
+                }
+            } else {
+                LazyColumn(modifier = Modifier.width(20.dp)) {
+                    items(chapterState.value?.verses ?: emptyList()) { verse ->
+                        VerseItem(verse, fontSizeState) {
+                            viewModel.setSelectedVerse(verse)
+                        }
+                    }
+                    item { Spacer(modifier = Modifier.height(48.dp)) }
+                }
+            }
 
-            DropdownMenu(expanded = showTutorial.value,
-                onDismissRequest = { viewModel.disableTutorials() }) {
+            DropdownMenu(
+                expanded = showTutorial.value,
+                onDismissRequest = { viewModel.disableTutorials() }
+            ) {
                 DropdownMenuItem(onClick = { }) {
 
                     Row() {
@@ -118,14 +140,7 @@ fun BibleReading(
                     currentChapter.value
                 )
             }
-            LazyColumn {
-                items(chapterState.value?.verses ?: emptyList()) { verse ->
-                    VerseItem(verse, fontSizeState) {
-                        viewModel.setSelectedVerse(verse)
-                    }
-                }
-                item { Spacer(modifier = Modifier.height(48.dp)) }
-            }
+
             selectedVerse.value?.let {
                 ShareVerseMenu(verse = it, viewModel, bookName, chapterId)
             }
@@ -162,7 +177,7 @@ fun BottomMenu(
                     viewModel.decreaseFontSize()
                 },
 
-                ) {
+            ) {
                 Text(
                     text = stringResource(id = R.string.decrease)
 
@@ -265,7 +280,7 @@ fun BottomMenu(
 }
 
 @Composable
-fun VerseItem(
+fun MultiVerseItem(
     verse: Verse,
     fontSize: State<TextUnit>,
     onLongClick: ((verse: Verse) -> Unit)? = null,
@@ -273,7 +288,7 @@ fun VerseItem(
 
     Surface(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxWidth(fraction = 0.4f)
             .padding(8.dp)
             .pointerInput(Unit) {
                 detectTapGestures(onLongPress = {
@@ -283,7 +298,67 @@ fun VerseItem(
                 })
             }
     ) {
-        Text(text = "${verse.number}. ${verse.text}", fontSize = fontSize.value)
+        Text(
+            text = "${verse.number}. ${verse.text}",
+            fontSize = fontSize.value,
+            modifier = Modifier.wrapContentSize()
+        )
+    }
+}
+
+@Composable
+fun VerseItem(
+    verse: Verse,
+    fontSize: State<TextUnit>,
+    onLongClick: ((verse: Verse) -> Unit)? = null,
+) {
+
+    Surface(
+        modifier = Modifier
+            .padding(8.dp)
+            .pointerInput(Unit) {
+                detectTapGestures(onLongPress = {
+                    if (onLongClick != null) {
+                        onLongClick(verse)
+                    }
+                })
+            }
+    ) {
+        Text(
+            text = "${verse.number}. ${verse.text}",
+            fontSize = fontSize.value,
+            modifier = Modifier.wrapContentSize()
+        )
+    }
+}
+
+@Composable
+fun MultiColumnVerseItem(
+    verses: Pair<Verse?, Verse?>,
+    fontSize: State<TextUnit>,
+    viewModel: BibleViewModel,
+) {
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .wrapContentSize()
+    ) {
+        Row {
+            verses.first?.let { verse ->
+                MultiVerseItem(verse, fontSize) {
+                    viewModel.setSelectedVerse(it)
+                }
+            }
+            Divider(modifier = Modifier.padding(8.dp))
+            verses.second?.let { verse ->
+                MultiVerseItem(verse, fontSize) {
+
+                    viewModel.setSelectedVerse(it)
+                }
+            }
+        }
     }
 }
 
@@ -326,7 +401,7 @@ private fun shareVerseIntent(verse: Verse, context: Context, bookName: String, c
         val line2 = "\n\n${context.getString(R.string.download_now_at_play_store)} $PLAY_STORE_URL"
         putExtra(
             Intent.EXTRA_TEXT,
-           line1 + line2
+            line1 + line2
         )
 
         type = "text/plain"
