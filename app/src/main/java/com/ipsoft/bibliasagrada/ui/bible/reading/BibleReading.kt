@@ -7,6 +7,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -101,12 +102,9 @@ fun BibleReading(
                 .fillMaxSize()
         ) {
             if (showTwoColumns) {
-                LazyColumn() {
-                    items(chapterState.value?.verses?.split() ?: emptyList()) { verses ->
-                        MultiColumnVerseItem(verses, fontSizeState, viewModel)
-                    }
-                    item { Spacer(modifier = Modifier.height(48.dp)) }
-                }
+                chapterState.value?.verses?.split()
+                    ?.let { verses -> MultiColumnVerseView(verses, fontSizeState, viewModel) }
+
             } else {
                 LazyColumn(modifier = Modifier.width(20.dp)) {
                     items(chapterState.value?.verses ?: emptyList()) { verse ->
@@ -114,9 +112,9 @@ fun BibleReading(
                             viewModel.setSelectedVerse(verse)
                         }
                     }
-                    item { Spacer(modifier = Modifier.height(48.dp)) }
                 }
             }
+            Spacer(modifier = Modifier.height(48.dp))
 
             DropdownMenu(
                 expanded = showTutorial.value,
@@ -156,6 +154,40 @@ fun BibleReading(
 }
 
 @Composable
+fun MultiColumnVerseView(
+    verses: Pair<List<Verse>?, List<Verse>?>,
+    fontSizeState: State<TextUnit>,
+    viewModel: BibleViewModel,
+) {
+    Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.Center) {
+        verses.first?.let {
+            LazyColumn(modifier = Modifier
+                .fillMaxWidth(0.5f)
+                .fillMaxHeight()) {
+                items(it) { verse ->
+                    VerseItem(verse, fontSizeState) {
+                        viewModel.setSelectedVerse(verse)
+                    }
+                }
+            }
+        }
+        verses.second?.let {
+            LazyColumn(modifier = Modifier
+                .fillMaxWidth(0.5f)
+                .fillMaxHeight()) {
+                items(it) { verse ->
+                    VerseItem(verse, fontSizeState) {
+                        viewModel.setSelectedVerse(verse)
+                    }
+                }
+            }
+        }
+    }
+
+}
+
+
+@Composable
 fun BottomMenu(
     viewModel: BibleViewModel,
     isSpeechEnable: State<Boolean>,
@@ -177,7 +209,7 @@ fun BottomMenu(
                     viewModel.decreaseFontSize()
                 },
 
-            ) {
+                ) {
                 Text(
                     text = stringResource(id = R.string.decrease)
 
@@ -280,33 +312,6 @@ fun BottomMenu(
 }
 
 @Composable
-fun MultiVerseItem(
-    verse: Verse,
-    fontSize: State<TextUnit>,
-    onLongClick: ((verse: Verse) -> Unit)? = null,
-) {
-
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth(fraction = 0.4f)
-            .padding(8.dp)
-            .pointerInput(Unit) {
-                detectTapGestures(onLongPress = {
-                    if (onLongClick != null) {
-                        onLongClick(verse)
-                    }
-                })
-            }
-    ) {
-        Text(
-            text = "${verse.number}. ${verse.text}",
-            fontSize = fontSize.value,
-            modifier = Modifier.wrapContentSize()
-        )
-    }
-}
-
-@Composable
 fun VerseItem(
     verse: Verse,
     fontSize: State<TextUnit>,
@@ -316,6 +321,7 @@ fun VerseItem(
     Surface(
         modifier = Modifier
             .padding(8.dp)
+            .fillMaxWidth()
             .pointerInput(Unit) {
                 detectTapGestures(onLongPress = {
                     if (onLongClick != null) {
@@ -327,38 +333,7 @@ fun VerseItem(
         Text(
             text = "${verse.number}. ${verse.text}",
             fontSize = fontSize.value,
-            modifier = Modifier.wrapContentSize()
         )
-    }
-}
-
-@Composable
-fun MultiColumnVerseItem(
-    verses: Pair<Verse?, Verse?>,
-    fontSize: State<TextUnit>,
-    viewModel: BibleViewModel,
-) {
-
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
-            .wrapContentSize()
-    ) {
-        Row {
-            verses.first?.let { verse ->
-                MultiVerseItem(verse, fontSize) {
-                    viewModel.setSelectedVerse(it)
-                }
-            }
-            Divider(modifier = Modifier.padding(8.dp))
-            verses.second?.let { verse ->
-                MultiVerseItem(verse, fontSize) {
-
-                    viewModel.setSelectedVerse(it)
-                }
-            }
-        }
     }
 }
 
@@ -398,7 +373,8 @@ private fun shareVerseIntent(verse: Verse, context: Context, bookName: String, c
     val shareIntent = Intent().apply {
         action = Intent.ACTION_SEND
         val line1 = "${verse.text} - $bookName $chapter:${verse.number}"
-        val line2 = "\n\n${context.getString(R.string.download_now_at_play_store)} $PLAY_STORE_URL"
+        val line2 =
+            "\n\n${context.getString(R.string.download_now_at_play_store)} $PLAY_STORE_URL"
         putExtra(
             Intent.EXTRA_TEXT,
             line1 + line2
