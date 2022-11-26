@@ -39,7 +39,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -68,6 +72,7 @@ fun BibleReading(
     loading: State<Boolean>,
 ) {
 
+    val showNavigationViews: State<Boolean> = viewModel.showNavigationViews.observeAsState(true)
     val showTutorial: State<Boolean> = viewModel.showTutorial.observeAsState(initial = true)
     val selectedVerse: State<Verse?> = viewModel.selectedVerse.observeAsState(null)
     val chapterState: State<ChapterResponse?> =
@@ -85,12 +90,15 @@ fun BibleReading(
 
     Scaffold(
         topBar = {
-            AppBar(
-                title = "$bookName - ${stringResource(id = R.string.chapter)} ${currentChapter.value}",
-                icon = Icons.Default.ArrowBack
-            ) {
-                viewModel.stopSpeech()
-                navController.navigateUp()
+            if (showNavigationViews.value) {
+                AppBar(
+                    title = "$bookName - ${stringResource(id = R.string.chapter)} ${currentChapter.value}",
+                    icon = Icons.Default.ArrowBack
+                ) {
+                    viewModel.stopSpeech()
+                    navController.navigateUp()
+                }
+            } else {
             }
         },
     ) {
@@ -129,13 +137,15 @@ fun BibleReading(
             selectedVerse.value?.let {
                 ShareVerseMenu(verse = it, viewModel, bookName, chapterId)
             }
-            BottomMenu(
-                viewModel,
-                isSpeechEnable,
-                currentText,
-                chapterQuantity,
-                currentChapter,
-            )
+            if (showNavigationViews.value) {
+                BottomMenu(
+                    viewModel,
+                    isSpeechEnable,
+                    currentText,
+                    chapterQuantity,
+                    currentChapter,
+                )
+            }
         }
     }
 }
@@ -326,7 +336,7 @@ private fun shareVerseIntent(verse: Verse, context: Context, bookName: String, c
         val line2 = "\n\n${context.getString(R.string.download_now_at_play_store)} $PLAY_STORE_URL"
         putExtra(
             Intent.EXTRA_TEXT,
-           line1 + line2
+            line1 + line2
         )
 
         type = "text/plain"

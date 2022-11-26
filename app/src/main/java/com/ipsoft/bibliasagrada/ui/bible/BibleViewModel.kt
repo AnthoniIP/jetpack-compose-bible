@@ -22,9 +22,9 @@ import com.ipsoft.bibliasagrada.domain.usecases.StoreFontSizeUseCase
 import com.ipsoft.bibliasagrada.domain.usecases.UseCase
 import com.ipsoft.bibliasagrada.ui.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import timber.log.Timber
 import java.util.Locale
 import javax.inject.Inject
+import timber.log.Timber
 
 @HiltViewModel
 class BibleViewModel @Inject constructor(
@@ -38,6 +38,7 @@ class BibleViewModel @Inject constructor(
 
     private var bruteFontSize = 16
 
+    private val _showNavigationViews = MutableLiveData(true)
     private val _showTutorial = MutableLiveData(true)
     private val _selectedVerse = MutableLiveData<Verse?>(null)
     private val _fontSize = MutableLiveData(bruteFontSize.sp)
@@ -50,6 +51,7 @@ class BibleViewModel @Inject constructor(
     private var textToSpeech: TextToSpeech? = null
     private val _isSpeechEnabled: MutableLiveData<Boolean> = MutableLiveData(false)
 
+    val showNavigationViews: LiveData<Boolean> = _showNavigationViews
     val showTutorial: LiveData<Boolean> = _showTutorial
     val selectedVerse: LiveData<Verse?> = _selectedVerse
     val fontSize: LiveData<TextUnit> = _fontSize
@@ -244,5 +246,10 @@ class BibleViewModel @Inject constructor(
                 ::handleTutorialDisabled
             )
         }
+    }
+
+    fun showNavigationViews(show: Boolean) {
+        _showNavigationViews.value = show
+
     }
 }
