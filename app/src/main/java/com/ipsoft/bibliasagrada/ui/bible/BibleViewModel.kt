@@ -66,6 +66,7 @@ class BibleViewModel @Inject constructor(
     init {
         getFontSize()
         getShowTutorialValue()
+        getBooks()
     }
 
     private fun getShowTutorialValue() {

@@ -106,8 +106,10 @@ fun BibleReading(
             modifier = Modifier.fillMaxSize()
         ) {
 
-            DropdownMenu(expanded = showTutorial.value,
-                onDismissRequest = { viewModel.disableTutorials() }) {
+            DropdownMenu(
+                expanded = showTutorial.value,
+                onDismissRequest = { viewModel.disableTutorials() }
+            ) {
                 DropdownMenuItem(onClick = { }) {
 
                     Row() {
@@ -172,7 +174,7 @@ fun BottomMenu(
                     viewModel.decreaseFontSize()
                 },
 
-                ) {
+            ) {
                 Text(
                     text = stringResource(id = R.string.decrease)
 
