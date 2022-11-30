@@ -59,14 +59,12 @@ interface BibleRepository : Repository {
                 val abbrevs = booksDao.getAllAbbrevs()
 
                 books.forEach { bookResponse ->
-                    val abbrev =
-                        abbrevs.firstOrNull { it.bookName == bookResponse.name }
-                    abbrev?.abbrev?.let {
+                    abbrevs.firstOrNull { it.bookName == bookResponse.name }?.abbrev?.let {
                         bookResponse.abbrev = Abbrev(pt = it)
                     }
                 }
 
-                Either.Right(books)
+                Either.Right(books.distinctBy { it.name })
             }
         }
 

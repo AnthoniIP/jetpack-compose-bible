@@ -24,9 +24,6 @@ interface ChurchDao {
     fun getAllAbbrevs(): List<AbbrevRoomModel>
 
     @Insert(onConflict = REPLACE)
-    fun insertAllBooks(vararg books: BookResponse)
-
-    @Insert(onConflict = REPLACE)
     fun insertAllBooks(books: List<BookResponse>)
 
     @Insert(onConflict = REPLACE)
